@@ -1,15 +1,24 @@
-// api/visual.js — Genera insight + fábula y guarda en Supabase (opcional)
+// api/visual.js — Genera insight + fábula; guarda opcionalmente en Supabase si hay credenciales
 import OpenAI from "openai";
 import { randomUUID } from "crypto";
-import { createClient } from "@supabase/supabase-js";
 
 const MODEL = process.env.MODEL || "gpt-4o-mini";
 
-// Supabase opcional (solo guarda si hay creds)
+// Flags Supabase (si no están, no guarda y NO importa el SDK)
 const HAS_SB = !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
-const supabase = HAS_SB
-  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
-  : null;
+let supabase = null;
+
+async function getSupabase() {
+  if (!HAS_SB) return null;
+  if (supabase) return supabase; // cache
+  const { createClient } = await import("@supabase/supabase-js");
+  supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    { auth: { persistSession: false } }
+  );
+  return supabase;
+}
 
 function buildSystemPrompt() {
   return `
@@ -49,7 +58,7 @@ Devolvé SOLO JSON válido con claves "insight" y "miniStory". Comillas dobles e
 `.trim();
 }
 
-// (compat de Responses API si la usás en otro lado)
+// Compat Responses API (por si algún día volvés)
 function extractJSON(resObj) {
   try {
     const out = resObj.output || [];
@@ -144,57 +153,64 @@ ${notes.map(n => `- ${n.note}`).join("\n")}
     const miniStory = (out.miniStory || "").trim();
     if (!insight || !miniStory) throw new Error("IA devolvió vacío");
 
-    // Guardado en Supabase (opcional)
+    // Guardado opcional en Supabase (solo si hay credenciales)
     let sessionId = null;
-    if (HAS_SB && supabase) {
-      // sessions
-      const { data: sData, error: sErr } = await supabase
-        .from("sessions")
-        .insert([{
-          id: randomUUID(),
-          anon_id: anonId,
-          question,
-          insight,
-          mini_story: miniStory
-        }])
-        .select("id")
-        .single();
-      if (sErr) console.error("[SB sessions] ", sErr);
-      sessionId = sData?.id || null;
+    if (HAS_SB) {
+      try {
+        const sb = await getSupabase();
+        if (sb) {
+          // sessions
+          const { data: sData, error: sErr } = await sb
+            .from("sessions")
+            .insert([{
+              id: randomUUID(),
+              anon_id: anonId,
+              question,
+              insight,
+              mini_story: miniStory
+            }])
+            .select("id")
+            .single();
+          if (sErr) console.error("[SB sessions] ", sErr);
+          sessionId = sData?.id || null;
 
-      // session_cards
-      if (sessionId) {
-        const cardRows = cards.map((c, i) => ({
-          id: randomUUID(),
-          session_id: sessionId,
-          name: c.name,
-          image_path: c.image_path || null,
-          position: i + 1
-        }));
-        const { error: cErr } = await supabase.from("session_cards").insert(cardRows);
-        if (cErr) console.error("[SB cards] ", cErr);
-      }
+          // session_cards
+          if (sessionId) {
+            const cardRows = cards.map((c, i) => ({
+              id: randomUUID(),
+              session_id: sessionId,
+              name: c.name,
+              image_path: c.image_path || null,
+              position: i + 1
+            }));
+            const { error: cErr } = await sb.from("session_cards").insert(cardRows);
+            if (cErr) console.error("[SB cards] ", cErr);
+          }
 
-      // session_notes
-      if (sessionId && notes?.length) {
-        const noteRows = notes
-          .filter(n => (n.note || "").trim())
-          .map(n => ({
-            id: randomUUID(),
-            session_id: sessionId,
-            card_name: n.name || n.card_name || "",
-            note: n.note
-          }));
-        if (noteRows.length) {
-          const { error: nErr } = await supabase.from("session_notes").insert(noteRows);
-          if (nErr) console.error("[SB notes] ", nErr);
+          // session_notes
+          if (sessionId && notes?.length) {
+            const noteRows = notes
+              .filter(n => (n.note || "").trim())
+              .map(n => ({
+                id: randomUUID(),
+                session_id: sessionId,
+                card_name: n.name || n.card_name || "",
+                note: n.note
+              }));
+            if (noteRows.length) {
+              const { error: nErr } = await sb.from("session_notes").insert(noteRows);
+              if (nErr) console.error("[SB notes] ", nErr);
+            }
+          }
         }
+      } catch (e) {
+        console.error("[SB error]", e?.message || e);
       }
     }
 
     return res.status(200).json({ insight, miniStory, sessionId, stored: !!sessionId });
   } catch (e) {
-    console.error(e);
-    return res.status(500).json({ error: e?.message || "AI/DB error" });
+    console.error("[API error]", e);
+    return res.status(500).json({ error: e?.message || "AI/Server error" });
   }
 }
