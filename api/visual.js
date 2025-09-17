@@ -103,11 +103,10 @@ ${notes.map(n => `- ${n.note}`).join("\n")}
       additionalProperties: false
     };
 
-    const ai = await client.responses.create({
+  const ai = await client.responses.create({
   model: MODEL,
   instructions: buildSystemPrompt(),
   input: user,
-  modalities: ["text"],
   text: {
     format: "json_schema",
     json_schema: {
