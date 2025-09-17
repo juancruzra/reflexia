@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Reflexia — Sesión Visual</title>
+<meta name="description" content="Reflexia: una experiencia visual y calma para pensar mejor. Elegí 3 cartas, escribí lo que te despiertan y recibí una devolución personalizada con una fábula final." />
+<style>
+  :root{
+    --bg:#0b1224; --bg-soft:#0e1630; --ink:#eef3ff; --ink-dim:#c9d3ee;
+    --muted:#9fb0d8; --accent:#89cff0; --accent-2:#b69cf8; --ok:#34d399;
+    --border:rgba(255,255,255,.14); --border-2:rgba(255,255,255,.08);
+    --card:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+    --glow:0 20px 80px rgba(137,207,240,.15), inset 0 0 0 1px rgba(255,255,255,.06);
+    --shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:
+      radial-gradient(1200px 800px at 20% -10%, #16234a, transparent 60%),
+      radial-gradient(1000px 700px at 120% 10%, #1a2b56, transparent 60%),
+      var(--bg);
+    color:var(--ink); font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  }
+
+  /* Layout */
+  .container{max-width:1100px;margin:0 auto;padding:28px}
+  header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .logo{
+    width:34px;height:34px;border-radius:10px;
+    background: radial-gradient(60% 60% at 30% 20%, #b6e1ff 0%, #89cff0 40%, rgba(137,207,240,.0) 60%),
+                linear-gradient(160deg,#89cff0,#b69cf8);
+    box-shadow: var(--glow);
+  }
+  .brand h1{font-size:18px;letter-spacing:.6px;margin:0}
+  .nav small{color:var(--muted)}
+  main.card{
+    background:var(--card); border:1px solid var(--border);
+    border-radius:18px; padding:18px; box-shadow:var(--shadow)
+  }
+
+  /* Hero / Home */
+  .hero{
+    display:grid; grid-template-columns: 1.1fr .9fr; gap:18px; align-items:center;
+    background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+    border:1px solid var(--border-2); border-radius:16px; padding:16px 18px;
+  }
+  .hero h2{margin:.2rem 0 .6rem 0; font-size:clamp(24px,3vw,36px)}
+  .lead{color:var(--ink-dim); line-height:1.5}
+  .pill{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--border);
+        padding:8px 12px;border-radius:999px;font-size:12px;color:var(--ink-dim);margin-bottom:8px}
+  .callouts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  .callouts .c{
+    background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
+    border:1px solid var(--border-2); border-radius:12px; padding:12px
+  }
+  .callouts b{color:#dfe8ff}
+  .cta{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
+
+  /* Steps container */
+  .steps{margin-top:16px; display:grid; grid-template-columns:1fr; gap:12px}
+  .section{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
+    border:1px solid var(--border-2); border-radius:14px; padding:14px}
+
+  /* Controls */
+  .field{display:flex;flex-direction:column;gap:6px}
+  label{color:#dfe8ff;font-weight:600}
+  input, textarea{
+    width:100%; background:var(--bg-soft); border:1px solid var(--border);
+    color:var(--ink); padding:12px 14px; border-radius:12px; outline:none;
+  }
+  textarea{min-height:120px; resize:vertical}
+  input:focus,textarea:focus{border-color:#7fd9ff; box-shadow: 0 0 0 3px rgba(127,217,255,.12)}
+
+  /* Buttons */
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:12px 16px;border-radius:12px;
+       border:1px solid var(--border); color:var(--ink); font-weight:800; cursor:pointer;
+       background:linear-gradient(180deg, rgba(137,207,240,.22), rgba(137,207,240,.08));}
+  .btn.secondary{background:transparent}
+  .btn.ghost{background:transparent;border-color:var(--border-2);color:var(--ink-dim)}
+  .btn.success{background:linear-gradient(180deg, rgba(52,211,153,.22), rgba(52,211,153,.08));border-color:rgba(52,211,153,.35)}
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+
+  /* Grid cartas */
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .choice{
+    border-radius:14px;overflow:hidden;border:1px solid var(--border);
+    background:var(--bg-soft);cursor:pointer;transition:transform .08s ease,box-shadow .2s ease;
+  }
+  .choice:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(0,0,0,.35)}
+  .imgwrap{width:100%; aspect-ratio: 2/3; background:#0a0f22; display:flex; align-items:center; justify-content:center}
+  .imgwrap img{width:100%; height:100%; object-fit: contain; display:block}
+  .choice h3{margin:10px 10px 12px 10px;font-size:16px}
+
+  /* Seleccionadas */
+  .sel{display:flex;gap:10px;flex-wrap:wrap}
+  .thumb{width:160px;border-radius:12px;border:1px solid var(--border);overflow:hidden;background:var(--bg-soft)}
+  .thumb .imgwrap{aspect-ratio:2/3}
+  .thumb img{width:100%;height:100%;object-fit:contain;display:block}
+  .thumb .cap{padding:6px 8px;font-size:12px;color:var(--ink-dim);text-align:center}
+
+  /* Notes layout */
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+  /* Progress */
+  .progress{height:10px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden}
+  .bar{height:100%;width:0;background:linear-gradient(90deg,#89cff0,#b69cf8);transition:width .25s ease}
+
+  .muted{color:var(--muted)}
+
+  /* Print */
+  @media (max-width:960px){
+    .hero{grid-template-columns:1fr}
+    .grid3{grid-template-columns:1fr}
+    .two{grid-template-columns:1fr}
+    .thumb{width:46%}
+  }
+  @media print{
+    header,.hero,.btn{display:none!important}
+    body{background:#fff;color:#000}
+    main.card{box-shadow:none;border:none}
+    .section{border:none}
+  }
+  .loading{opacity:.85}
+</style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <h1>Reflexia</h1>
+      </div>
+      <div class="nav"><small>Sesión visual para pensar mejor, con calma.</small></div>
+    </header>
+
+    <main class="card">
+      <!-- HOME / INSTRUCCIONES -->
+      <section id="home" class="hero">
+        <div>
+          <span class="pill">Sessión guiada — 3 pasos</span>
+          <h2>Un ratito para mirar distinto</h2>
+          <p class="lead">
+            Reflexia es una experiencia simple: elegís imágenes que te despiertan algo, escribís lo que te sugieren y recibís una devolución personalizada con una fábula final. Sin apuros, sin tecnicismos.
+          </p>
+          <div class="callouts">
+            <div class="c">
+              <b>Cómo funciona</b><br/>
+              1) Escribí tu pregunta.<br/>
+              2) Elegí 3 cartas visuales (podés pedir otras 3 cuando quieras).<br/>
+              3) Anotá lo que sentís/pensás y recibí una devolución reflexiva con una historia breve.
+            </div>
+            <div class="c">
+              <b>Clima y cuidado</b><br/>
+              Andá sin presión. Si algo no resuena, cambiá de carta. Podés imprimir o guardar tu informe al final.
+            </div>
+          </div>
+          <div class="cta">
+            <a href="#play" class="btn" id="btnHomeStart">Empezar sesión</a>
+            <button class="btn ghost" id="btnSeeHow">Ver pasos</button>
+          </div>
+        </div>
+        <div class="section">
+          <div class="field">
+            <label for="inpQuestion"><span aria-hidden="true">📝</span> Tu pregunta o inquietud (1 frase)</label>
+            <input id="inpQuestion" placeholder="Ej.: ¿Cómo destrabar este tema sin exigirme de más?" />
+          </div>
+          <div style="height:10px"></div>
+          <div class="progress" aria-hidden="true"><div class="bar" id="homeBar" style="width: 0%"></div></div>
+          <div class="muted" style="margin-top:6px;font-size:12px">Nada de “cuentas” ni registros: todo se guarda de forma anónima para mejorar la herramienta.</div>
+        </div>
+      </section>
+
+      <!-- PASO 1: SELECCIÓN -->
+      <section id="stepSelect" class="section" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px">
+          <div class="muted"><b id="lblProgress">Carta 1/3</b></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn secondary" id="btnRedeal">Repartir 3 nuevas</button>
+          </div>
+        </div>
+        <div id="choices" class="grid3" aria-live="polite"></div>
+        <div class="section" style="margin-top:12px">
+          <div class="muted">Elegí una carta que te resuene. Si ninguna, tocá “Repartir 3 nuevas”.</div>
+          <div class="sel" id="picked" style="margin-top:8px"></div>
+        </div>
+      </section>
+
+      <!-- PASO 2: NOTAS -->
+      <section id="stepNotes" class="section" style="display:none;">
+        <h3>Tus 3 cartas</h3>
+        <p class="muted" style="margin-top:-6px">Escribí lo que te despiertan. No hace falta que sea perfecto; con 2–3 líneas alcanza.</p>
+        <div id="notesBox" class="two" style="margin-top:8px"></div>
+        <div style="margin-top:10px;display:flex;gap:10px;align-items:center;">
+          <button class="btn" id="btnReport">Obtener devolución</button>
+          <small class="muted">Podés dejar algún cuadro vacío si no querés escribir.</small>
+        </div>
+      </section>
+
+      <!-- PASO 3: INFORME -->
+      <section id="stepResult" class="section" style="display:none;">
+        <h3>Informe</h3>
+        <div class="section" style="margin-top:6px">
+          <b>Pregunta</b><br/>
+          <div id="outQuestion" style="white-space:pre-wrap;margin-top:4px"></div>
+        </div>
+
+        <div class="section" style="margin-top:10px">
+          <b>Tus cartas</b>
+          <div class="sel" id="outCards" style="margin-top:8px"></div>
+        </div>
+
+        <div class="section" id="outNotesBox" style="margin-top:10px;display:none;">
+          <b>Tus notas</b>
+          <ul id="outNotes" style="margin:6px 0 0 18px"></ul>
+        </div>
+
+        <div class="section" style="margin-top:10px">
+          <b>Insight</b>
+          <div id="outInsight" style="white-space:pre-wrap;margin-top:6px"></div>
+        </div>
+
+        <div class="section" style="margin-top:10px">
+          <b>Fábula</b>
+          <div id="outStory" style="white-space:pre-wrap;margin-top:6px"></div>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center;margin-top:10px">
+          <button class="btn secondary" onclick="window.print()">Imprimir / Guardar PDF</button>
+          <button class="btn ghost" id="btnRestart">Nueva sesión</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const el = (t,c) => { const n=document.createElement(t); if(c) n.className=c; return n; };
+
+  // Sections / elements
+  const home = $("#home");
+  const stepSelect = $("#stepSelect");
+  const stepNotes = $("#stepNotes");
+  const stepResult = $("#stepResult");
+
+  const inpQuestion = $("#inpQuestion");
+  const btnHomeStart = $("#btnHomeStart");
+  const btnSeeHow = $("#btnSeeHow");
+  const homeBar = $("#homeBar");
+
+  const btnRedeal = $("#btnRedeal");
+  const lblProgress = $("#lblProgress");
+  const choices = $("#choices");
+  const picked = $("#picked");
+  const notesBox = $("#notesBox");
+  const btnReport = $("#btnReport");
+
+  const outQuestion = $("#outQuestion");
+  const outCards = $("#outCards");
+  const outNotesBox = $("#outNotesBox");
+  const outNotes = $("#outNotes");
+  const outInsight = $("#outInsight");
+  const outStory = $("#outStory");
+  const btnRestart = $("#btnRestart");
+
+  // State
+  let ALL = [];       // cartas (desde manifest)
+  let pool = [];      // baraja para repartir
+  let selected = [];  // 3 cartas elegidas
+  let question = "";  // texto
+  let notes = [];     // {cardId, name, note}
+
+  // Smooth helpers
+  function toView(node){ node.scrollIntoView({behavior:"smooth",block:"start"}); }
+
+  // Manifest loader (desde /public/cards/)
+  async function loadManifest(){
+    const res = await fetch('/cards/manifest.json', { cache: 'force-cache' });
+    if(!res.ok) throw new Error('No se pudo leer /cards/manifest.json. Verificá el deploy.');
+    const m = await res.json();
+    ALL = (m.items || m || []).map((it, idx)=>({
+      id: String(idx+1).padStart(2,'0'),
+      name: it.name || ('Carta ' + (idx+1)),
+      image: '/cards/' + (it.filename || it.image || ''),
+    })).filter(x=>x.image);
+    pool = shuffle(ALL.slice());
+  }
+
+  function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+  function draw3(){
+    if(pool.length < 3) pool = shuffle(ALL.slice());
+    return [pool.pop(), pool.pop(), pool.pop()];
+  }
+  function updateProgress(){ lblProgress.textContent = `Carta ${selected.length+1}/3`; }
+
+  function renderChoices(set){
+    choices.innerHTML = "";
+    set.forEach(card=>{
+      const d = el('div','choice');
+      d.innerHTML = `
+        <div class="imgwrap"><img src="${card.image}" alt="${card.name}" loading="lazy"/></div>
+        <h3>${card.name}</h3>`;
+      d.addEventListener('click', ()=> chooseCard(card));
+      choices.appendChild(d);
+    });
+  }
+
+  function chooseCard(card){
+    if(selected.length>=3) return;
+    selected.push(card);
+    renderPicked();
+    if(selected.length<3){
+      updateProgress();
+      renderChoices(draw3());
+      toView(stepSelect);
+    }else{
+      stepSelect.style.display="none";
+      stepNotes.style.display="block";
+      renderNotes();
+      toView(stepNotes);
+    }
+  }
+
+  function renderPicked(){
+    picked.innerHTML="";
+    selected.forEach(c=>{
+      const t = el('div','thumb');
+      t.innerHTML = `
+        <div class="imgwrap"><img src="${c.image}" alt="${c.name}"/></div>
+        <div class="cap">${c.name}</div>`;
+      picked.appendChild(t);
+    });
+  }
+
+  function renderNotes(){
+    notesBox.innerHTML="";
+    notes = selected.map(c=>({ cardId:c.id, name:c.name, note:"" }));
+    selected.forEach((c,i)=>{
+      const box = el('div','section');
+      box.innerHTML = `
+        <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px;">
+          <div class="thumb"><div class="imgwrap"><img src="${c.image}" alt="${c.name}" loading="lazy"/></div></div>
+          <div>
+            <b>${c.name}</b>
+            <div class="muted">¿Qué te despierta? ¿Cómo conecta con tu pregunta?</div>
+          </div>
+        </div>
+        <textarea data-i="${i}" placeholder="Escribí 2–3 líneas (opcional)"></textarea>
+      `;
+      notesBox.appendChild(box);
+    });
+    notesBox.querySelectorAll('textarea').forEach(ta=>{
+      ta.addEventListener('input', e=>{
+        const i = Number(e.target.getAttribute('data-i'));
+        notes[i].note = e.target.value;
+      });
+    });
+  }
+
+  // Home actions
+  btnHomeStart.addEventListener('click', async (ev)=>{
+    ev.preventDefault();
+    question = (inpQuestion.value||"").trim();
+    if(!question){ inpQuestion.focus(); pulse(inpQuestion); return; }
+    homeBar.style.width = "30%";
+    await loadManifest().catch(err=> alert(err?.message||err));
+    homeBar.style.width = "65%";
+    selected = []; renderPicked(); updateProgress(); renderChoices(draw3());
+    home.style.display="none"; stepSelect.style.display="block";
+    homeBar.style.width = "100%";
+    toView(stepSelect);
+  });
+
+  btnSeeHow.addEventListener('click', ()=>{
+    alert("Pasos:\n\n1) Escribí tu pregunta.\n2) Elegí 3 cartas (podés pedir 3 nuevas si no te resuenan).\n3) Anotá lo que te despiertan.\n4) Recibí una devolución personalizada con una fábula final.\n\nTip: Tómatelo con calma. Si algo no resuena, cambiá la carta.");
+  });
+
+  // Repartir nuevas 3
+  btnRedeal.addEventListener('click', ()=>{
+    if(selected.length>=3) return;
+    renderChoices(draw3());
+  });
+
+  // Report
+  btnReport.addEventListener('click', async ()=>{
+    btnReport.classList.add('loading');
+    btnReport.textContent = "Generando devolución…";
+
+    try{
+      const payload = {
+        question,
+        cards: selected.map(c => ({ id:c.id, name:c.name, image_path: c.image })),
+        notes: notes.filter(n=> (n.note||"").trim().length>0)
+      };
+      const r = await fetch('/api/visual', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const text = await r.text(); let data;
+      try{ data = JSON.parse(text); }catch{ throw new Error(text||'Respuesta no JSON'); }
+      if(!r.ok) throw new Error(data.error || 'Error de servidor');
+
+      stepNotes.style.display="none";
+      stepResult.style.display="block";
+
+      outQuestion.textContent = question;
+
+      outCards.innerHTML = "";
+      selected.forEach(c=>{
+        const t = el('div','thumb');
+        t.innerHTML = `
+          <div class="imgwrap"><img src="${c.image}" alt="${c.name}"/></div>
+          <div class="cap">${c.name}</div>`;
+        outCards.appendChild(t);
+      });
+
+      const visibleNotes = notes.filter(n => (n.note||"").trim().length>0);
+      if(visibleNotes.length){
+        outNotesBox.style.display = "block";
+        outNotes.innerHTML = visibleNotes.map(n=>`<li><b>${n.name}:</b> ${escapeHtml(n.note)}</li>`).join("");
+      } else {
+        outNotesBox.style.display = "none";
+      }
+
+      outInsight.textContent = (data.insight||"").trim() || "—";
+      outStory.textContent   = (data.miniStory||"").trim() || "—";
+      toView(stepResult);
+    }catch(e){
+      alert("No se pudo generar la devolución.\n" + (e?.message||e));
+    }finally{
+      btnReport.classList.remove('loading');
+      btnReport.textContent = "Obtener devolución";
+    }
+  });
+
+  // Restart
+  btnRestart.addEventListener('click', ()=>{
+    stepResult.style.display="none";
+    home.style.display="grid";
+    selected=[]; notes=[]; question="";
+    inpQuestion.value = "";
+    homeBar.style.width = "0%";
+    window.scrollTo({top:0, behavior:"smooth"});
+  });
+
+  // Utils
+  function pulse(node){
+    node.style.boxShadow = "0 0 0 4px rgba(182,156,248,.25)";
+    setTimeout(()=> node.style.boxShadow="none", 800);
+  }
+  function escapeHtml(s){ return (s||"").replace(/[&<>"]/g, m=>({ "&":"&amp;","<":"&lt;","&gt;":"&gt;","\"":"&quot;"}[m])); }
+})();
+</script>
+</body>
+</html>
