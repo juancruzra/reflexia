@@ -104,11 +104,19 @@ ${notes.map(n => `- ${n.note}`).join("\n")}
     };
 
     const ai = await client.responses.create({
-      model: MODEL,
-      instructions: buildSystemPrompt(),
-      input: user,
-      response_format: { type: "json_schema", json_schema: { name: "ReflexiaV2", schema, strict: true } }
-    });
+  model: MODEL,
+  instructions: buildSystemPrompt(),
+  input: user,
+  modalities: ["text"],
+  text: {
+    format: "json_schema",
+    json_schema: {
+      name: "ReflexiaV2",
+      schema,
+      strict: true
+    }
+  }
+});
 
     const out = extractJSON(ai);
     const insight = (out.insight || "").trim();
