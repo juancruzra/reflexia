@@ -1,9 +1,15 @@
-// api/visual.js — Genera insight + fábula y guarda en Vercel Postgres
+// api/visual.js — Genera insight + fábula y guarda en Supabase (opcional)
 import OpenAI from "openai";
-import { sql } from "@vercel/postgres";
 import { randomUUID } from "crypto";
+import { createClient } from "@supabase/supabase-js";
 
 const MODEL = process.env.MODEL || "gpt-4o-mini";
+
+// Supabase opcional (solo guarda si hay creds)
+const HAS_SB = !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+const supabase = HAS_SB
+  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+  : null;
 
 function buildSystemPrompt() {
   return `
@@ -35,7 +41,7 @@ Tu tarea es devolver SOLO JSON con dos campos:
 - Usa personajes simples (viajero, jardinera, farero, ave, niño, artesana).
 - Crea una escena concreta y visual (bosque, mar, montaña, ciudad, taller).
 - El aprendizaje debe emerger del relato, no de explicaciones forzadas.
-- Está estrictamente prohibido que uses las cartas y sus símbolos en la fábula. La fábula es para ver el caso desde otra mirada y no seguir empalagando con las cartas.
+- Está estrictamente prohibido que uses las cartas y sus símbolos de forma literal en la fábula. La fábula es para ver el caso desde otra mirada.
 - Cerrá SIEMPRE con esta línea final en mayúsculas:
   "MORALEJA: <frase breve, amable y accionable>"
 
@@ -43,8 +49,8 @@ Devolvé SOLO JSON válido con claves "insight" y "miniStory". Comillas dobles e
 `.trim();
 }
 
+// (compat de Responses API si la usás en otro lado)
 function extractJSON(resObj) {
-  // (Queda por compatibilidad si volvés a Responses API)
   try {
     const out = resObj.output || [];
     for (const block of out) {
@@ -65,7 +71,6 @@ function extractJSON(resObj) {
 }
 
 function getAnonId(req, res) {
-  // leer o setear cookie anon_id
   const cookie = req.headers.cookie || "";
   const m = cookie.match(/anon_id=([a-f0-9-]+)/i);
   if (m) return m[1];
@@ -84,6 +89,7 @@ export default async function handler(req, res) {
 
     const anonId = getAnonId(req, res);
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    if (!client.apiKey) return res.status(500).json({ error: "Falta OPENAI_API_KEY" });
 
     const user = `
 Pregunta: ${JSON.stringify(question)}
@@ -93,7 +99,7 @@ Notas del usuario:
 ${notes.map(n => `- ${n.note}`).join("\n")}
 `.trim();
 
-    // 1) IA — Chat Completions con JSON Schema (estable en openai@^4)
+    // IA — Chat Completions con JSON Schema (estable)
     const schema = {
       type: "object",
       properties: { insight: { type: "string" }, miniStory: { type: "string" } },
@@ -115,10 +121,9 @@ ${notes.map(n => `- ${n.note}`).join("\n")}
           strict: true
         }
       }
-      // temperature: 0.7, // opcional
     });
 
-    // Obtener y parsear JSON
+    // Parseo del JSON
     let txt = ai.choices?.[0]?.message?.content?.trim() || "";
     if (!txt) throw new Error("Respuesta vacía de IA");
     let out;
@@ -126,9 +131,8 @@ ${notes.map(n => `- ${n.note}`).join("\n")}
       out = JSON.parse(txt);
     } catch {
       const fence = txt.match(/```json\s*([\s\S]*?)```/i);
-      if (fence && fence[1]) {
-        out = JSON.parse(fence[1]);
-      } else {
+      if (fence && fence[1]) out = JSON.parse(fence[1]);
+      else {
         const fixed = txt
           .replace(/([{,]\s*)([A-Za-z0-9_]+)\s*:/g, '$1"$2":')
           .replace(/'/g, '"');
@@ -140,34 +144,55 @@ ${notes.map(n => `- ${n.note}`).join("\n")}
     const miniStory = (out.miniStory || "").trim();
     if (!insight || !miniStory) throw new Error("IA devolvió vacío");
 
-    // 2) Guardar en DB (transacción simple)
-    const { rows } = await sql`
-      insert into sessions (id, anon_id, question, insight, mini_story)
-      values (${randomUUID()}, ${anonId}::uuid, ${question}, ${insight}, ${miniStory})
-      returning id
-    `;
-    const sessionId = rows[0].id;
+    // Guardado en Supabase (opcional)
+    let sessionId = null;
+    if (HAS_SB && supabase) {
+      // sessions
+      const { data: sData, error: sErr } = await supabase
+        .from("sessions")
+        .insert([{
+          id: randomUUID(),
+          anon_id: anonId,
+          question,
+          insight,
+          mini_story: miniStory
+        }])
+        .select("id")
+        .single();
+      if (sErr) console.error("[SB sessions] ", sErr);
+      sessionId = sData?.id || null;
 
-    // cartas
-    for (let i = 0; i < cards.length; i++) {
-      const c = cards[i];
-      await sql`
-        insert into session_cards (id, session_id, name, image_path, position)
-        values (${randomUUID()}, ${sessionId}, ${c.name}, ${c.image_path || null}, ${i + 1})
-      `;
-    }
-    // notas
-    for (const n of notes) {
-      if ((n.note || "").trim()) {
-        await sql`
-          insert into session_notes (id, session_id, card_name, note)
-          values (${randomUUID()}, ${sessionId}, ${n.name || n.card_name || ""}, ${n.note})
-        `;
+      // session_cards
+      if (sessionId) {
+        const cardRows = cards.map((c, i) => ({
+          id: randomUUID(),
+          session_id: sessionId,
+          name: c.name,
+          image_path: c.image_path || null,
+          position: i + 1
+        }));
+        const { error: cErr } = await supabase.from("session_cards").insert(cardRows);
+        if (cErr) console.error("[SB cards] ", cErr);
+      }
+
+      // session_notes
+      if (sessionId && notes?.length) {
+        const noteRows = notes
+          .filter(n => (n.note || "").trim())
+          .map(n => ({
+            id: randomUUID(),
+            session_id: sessionId,
+            card_name: n.name || n.card_name || "",
+            note: n.note
+          }));
+        if (noteRows.length) {
+          const { error: nErr } = await supabase.from("session_notes").insert(noteRows);
+          if (nErr) console.error("[SB notes] ", nErr);
+        }
       }
     }
 
-    // 3) Responder al front
-    return res.status(200).json({ insight, miniStory, sessionId });
+    return res.status(200).json({ insight, miniStory, sessionId, stored: !!sessionId });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: e?.message || "AI/DB error" });
