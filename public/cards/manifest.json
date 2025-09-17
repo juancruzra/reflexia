@@ -1,0 +1,28 @@
+{
+  "items": [
+    { "name": "Umbral", "filename": "01-umbral.png" },
+    { "name": "Raíz", "filename": "02-raiz.png" },
+    { "name": "Tormenta", "filename": "03-tormenta.png" },
+    { "name": "Resiliencia", "filename": "04-resiliencia.png" },
+    { "name": "Espejo", "filename": "05-espejo.png" },
+    { "name": "Laberinto", "filename": "06-laberinto.png" },
+    { "name": "Puerta Cerrada", "filename": "07-puerta-cerrada.png" },
+    { "name": "Puerta Abierta", "filename": "08-puerta-abierta.png" },
+    { "name": "Farol", "filename": "09-farol.png" },
+    { "name": "Nido", "filename": "10-nido.png" },
+    { "name": "Río", "filename": "11-rio.png" },
+    { "name": "Montaña", "filename": "12-montana.png" },
+    { "name": "Arena", "filename": "13-arena.png" },
+    { "name": "Camino", "filename": "14-camino.png" },
+    { "name": "Llama", "filename": "15-llama.png" },
+    { "name": "Mar Abierto", "filename": "16-mar-abierto.png" },
+    { "name": "Sombra", "filename": "17-sombra.png" },
+    { "name": "Puente de Luz", "filename": "18-puente-de-luz.png" },
+    { "name": "Sendero de Piedras", "filename": "19-sendero-de-piedras.png" },
+    { "name": "Jardín Oculto", "filename": "20-jardin-oculto.png" },
+    { "name": "Reloj Viejo", "filename": "21-reloj-viejo.png" },
+    { "name": "Cenizas", "filename": "22-cenizas.png" },
+    { "name": "Ave en Vuelo", "filename": "23-ave-en-vuelo.png" },
+    { "name": "Puñado de Estrellas", "filename": "24-punado-de-estrellas.png" }
+  ]
+}
