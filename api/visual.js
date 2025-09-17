@@ -47,10 +47,10 @@ Tu tarea es devolver SOLO JSON con dos campos:
 ### Reglas para "miniStory"
 - Escribe una fábula o cuento de 180–350 palabras.
 - Debe tener inicio, desarrollo y desenlace claros.
-- Usa personajes simples (viajero, jardinera, farero, ave, niño, artesana).
-- Crea una escena concreta y visual (bosque, mar, montaña, ciudad, taller).
+- Usa personajes simples (viajero, jardinero, ave, niño, artesano, son solo ejemplos puedes usar otros).
+- Crea una escena concreta y visual (bosque, mar, montaña, ciudad, taller, son solo ejemplos puedes usar otros).
 - El aprendizaje debe emerger del relato, no de explicaciones forzadas.
-- Está estrictamente prohibido que uses las cartas y sus símbolos de forma literal en la fábula. La fábula es para ver el caso desde otra mirada.
+- Está estrictamente prohibido que uses las cartas y sus símbolos en la fábula. La fábula es para ver el caso desde otra mirada y desempalagarnos de las cartas.
 - Cerrá SIEMPRE con esta línea final en mayúsculas:
   "MORALEJA: <frase breve, amable y accionable>"
 
