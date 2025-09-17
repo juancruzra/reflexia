@@ -35,7 +35,7 @@ Tu tarea es devolver SOLO JSON con dos campos:
 - Usa personajes simples (viajero, jardinera, farero, ave, niño, artesana).
 - Crea una escena concreta y visual (bosque, mar, montaña, ciudad, taller).
 - El aprendizaje debe emerger del relato, no de explicaciones forzadas.
-- Está estrictamente prohibido que uses las cartas y sus símbolos de forma literal en la fábula. La fábula es para ver el caso desde otra mirada.
+- Está estrictamente prohibido que uses las cartas y sus símbolos en la fábula. La fábula es para ver el caso desde otra mirada y no seguir empalagando con las cartas.
 - Cerrá SIEMPRE con esta línea final en mayúsculas:
   "MORALEJA: <frase breve, amable y accionable>"
 
@@ -44,7 +44,7 @@ Devolvé SOLO JSON válido con claves "insight" y "miniStory". Comillas dobles e
 }
 
 function extractJSON(resObj) {
-  // Responses API: intentar json nativo
+  // (Queda por compatibilidad si volvés a Responses API)
   try {
     const out = resObj.output || [];
     for (const block of out) {
@@ -53,13 +53,11 @@ function extractJSON(resObj) {
       }
     }
   } catch {}
-  // Fallback: texto
   const txt = (resObj.output_text || "").trim();
   if (!txt) throw new Error("Respuesta vacía de IA");
   const fence = txt.match(/```json\s*([\s\S]*?)```/i);
   const raw = fence ? fence[1] : txt;
   try { return JSON.parse(raw); } catch {}
-  // Reparación mínima
   const fixed = raw
     .replace(/([{,]\s*)([A-Za-z0-9_]+)\s*:/g, '$1"$2":')
     .replace(/'/g, '"');
@@ -95,7 +93,7 @@ Notas del usuario:
 ${notes.map(n => `- ${n.note}`).join("\n")}
 `.trim();
 
-    // 1) IA
+    // 1) IA — Chat Completions con JSON Schema (estable en openai@^4)
     const schema = {
       type: "object",
       properties: { insight: { type: "string" }, miniStory: { type: "string" } },
@@ -103,21 +101,41 @@ ${notes.map(n => `- ${n.note}`).join("\n")}
       additionalProperties: false
     };
 
-  const ai = await client.responses.create({
-  model: MODEL,
-  instructions: buildSystemPrompt(),
-  input: user,
-  text: {
-    format: "json_schema",
-    json_schema: {
-      name: "ReflexiaV2",
-      schema,
-      strict: true
-    }
-  }
-});
+    const ai = await client.chat.completions.create({
+      model: MODEL,
+      messages: [
+        { role: "system", content: buildSystemPrompt() },
+        { role: "user", content: user }
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "ReflexiaV2",
+          schema,
+          strict: true
+        }
+      }
+      // temperature: 0.7, // opcional
+    });
 
-    const out = extractJSON(ai);
+    // Obtener y parsear JSON
+    let txt = ai.choices?.[0]?.message?.content?.trim() || "";
+    if (!txt) throw new Error("Respuesta vacía de IA");
+    let out;
+    try {
+      out = JSON.parse(txt);
+    } catch {
+      const fence = txt.match(/```json\s*([\s\S]*?)```/i);
+      if (fence && fence[1]) {
+        out = JSON.parse(fence[1]);
+      } else {
+        const fixed = txt
+          .replace(/([{,]\s*)([A-Za-z0-9_]+)\s*:/g, '$1"$2":')
+          .replace(/'/g, '"');
+        out = JSON.parse(fixed);
+      }
+    }
+
     const insight = (out.insight || "").trim();
     const miniStory = (out.miniStory || "").trim();
     if (!insight || !miniStory) throw new Error("IA devolvió vacío");
